@@ -10,44 +10,48 @@ import java.util.Map;
 
 public class FileReader {
 
-    public static Profile getDataFromFile(File file) {
-        String fileData = readFileToString(file);
-        Map<String, String> profileData = parseData(fileData);
-        return createProfile(profileData);
-    }
-
-    private static String readFileToString(File file) {
-        StringBuilder stringBuilder = new StringBuilder();
-        try (BufferedReader reader = Files.newBufferedReader(file.toPath())) {
+    public Profile getDataFromFile(File file) {
+        Profile profile = new Profile();
+        try(BufferedReader fileReader = new BufferedReader(new java.io.FileReader(file))) {
             String line;
-            while ((line = reader.readLine()) != null) {
-                stringBuilder.append(line).append("\n");
+            while ((line = fileReader.readLine()) != null) {
+                var lineEntry = parseLine(line);
+                setProfileField(profile, lineEntry);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new FileReaderException(e.getMessage());
         }
-        return stringBuilder.toString();
+        return profile;
     }
 
-    private static Map<String, String> parseData(String data) {
-        Map<String, String> profileData = new HashMap<>();
-        String[] lines = data.split("\n");
-        for (String line : lines) {
-            String[] keyValue = line.split(": ");
-            if (keyValue.length == 2) {
-                String key = keyValue[0].trim();
-                String value = keyValue[1].trim();
-                profileData.put(key, value);
+    private void setProfileField(Profile profile, Map.Entry<String, String> lineEntry) {
+        switch (lineEntry.getKey()){
+            case "Name" :{
+                profile.setName(lineEntry.getValue());
+                break;
+            }
+            case "Age":{
+                profile.setAge(Integer.parseInt(lineEntry.getValue()));
+                break;
+            }
+            case "Email":{
+                profile.setEmail(lineEntry.getValue());
+                break;
+            }
+            case "Phone":{
+                profile.setPhone(Long.parseLong(lineEntry.getValue()));
+                break;
+            }
+            default:{
+                throw new IllegalArgumentException(String.format("There is no field with name: %s, in class %s", lineEntry.getKey(), profile));
             }
         }
-        return profileData;
     }
 
-    private static Profile createProfile(Map<String, String> profileData) {
-        String name = profileData.get("Name");
-        int age = Integer.parseInt(profileData.get("Age"));
-        String email = profileData.get("Email");
-        String phone = profileData.get("Phone");
-        return new Profile(name, age, email, Long.valueOf(phone));
+    private Map.Entry<String, String> parseLine(String line){
+        var entry = line.split(": ");
+        String key = entry[0];
+        String value = entry[1];
+        return Map.entry(key, value);
     }
 }
